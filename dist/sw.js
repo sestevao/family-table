@@ -1,5 +1,5 @@
-// Keeps the app shell working offline. API calls always go to the network.
-const CACHE = "family-table-v1";
+// Keeps the app shell working offline and shows dinner reminders. API calls always go to the network.
+const CACHE = "family-table-v2";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/manifest.webmanifest", "/icon.svg"])));
@@ -25,5 +25,32 @@ self.addEventListener("fetch", (e) => {
         return res;
       })
       .catch(() => caches.match(e.request).then((r) => r || caches.match("/")))
+  );
+});
+
+self.addEventListener("push", (e) => {
+  let msg = { title: "Family Table", body: "Time to think about dinner", url: "/" };
+  try {
+    msg = { ...msg, ...e.data.json() };
+  } catch {}
+  e.waitUntil(
+    self.registration.showNotification(msg.title, {
+      body: msg.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      tag: "dinner",
+      data: { url: msg.url },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = e.notification.data?.url || "/";
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      const open = list.find((c) => new URL(c.url).origin === location.origin);
+      return open ? open.focus() : self.clients.openWindow(url);
+    })
   );
 });

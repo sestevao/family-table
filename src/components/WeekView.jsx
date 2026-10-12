@@ -1,14 +1,16 @@
-import { DAYS, SPECIAL } from "../data.js";
-import { findRecipe, lunchOn, portions, mondayOfThisWeek } from "../plan.js";
-import { Thumb } from "./ui.jsx";
+import { DAYS, MEALS, MEAL_LABEL, SPECIAL } from "../data.js";
+import { findRecipe, mealOn, portions, peopleLabel, dateFromKey } from "../plan.js";
+import { Thumb, Marks } from "./ui.jsx";
 
-const LUNCH_MODES = { all: "Every day", weekend: "Weekends", none: "Off" };
-
-function slotInfo(state, slot) {
+export function slotInfo(state, slot) {
   if (!slot) return null;
   if (slot.r) {
     const r = findRecipe(state, slot.r);
-    return r && { name: r.name, sub: <span className="mins">{r.mins} min</span>, recipe: r };
+    return r && { name: r.name, mins: r.mins, double: slot.double, recipe: r };
+  }
+  if (slot.s === "left" && slot.of) {
+    const of = findRecipe(state, slot.of);
+    return { name: of ? `Leftovers: ${of.name}` : "Leftovers", sub: "From the double batch", recipe: { id: "left", pic: "🥡" } };
   }
   if (slot.s && SPECIAL[slot.s]) {
     return { name: SPECIAL[slot.s].name, sub: SPECIAL[slot.s].sub, recipe: { id: slot.s, pic: SPECIAL[slot.s].pic } };
@@ -17,43 +19,28 @@ function slotInfo(state, slot) {
   return null;
 }
 
-export default function WeekView({ state, update, photos, openSlot, askNewWeek }) {
-  const monday = mondayOfThisWeek();
-  const todayIdx = (new Date().getDay() + 6) % 7;
-  const step = (key, d) =>
-    update((s) => {
-      s[key] = Math.min(10, Math.max(key === "adults" ? 1 : 0, (s[key] || 0) + d));
-    });
+export default function WeekView({ state, photos, openSlot, openHousehold, openPastWeeks, askNewWeek }) {
+  const monday = dateFromKey(state.weekOf);
+  const todayIdx = Math.floor((new Date().setHours(0, 0, 0, 0) - monday.getTime()) / 86400000);
+  const planned = ["breakfast", "lunchbox", "lunch"].filter((m) => (state.mealModes?.[m] || "none") !== "none").map((m) => MEAL_LABEL[m].toLowerCase());
 
   return (
     <>
-      <div className="toolbar">
-        <div className="stepper" aria-label="Adults">
-          <button onClick={() => step("adults", -1)} aria-label="Fewer adults">−</button>
-          <span>{state.adults} adult{state.adults === 1 ? "" : "s"}</span>
-          <button onClick={() => step("adults", 1)} aria-label="More adults">+</button>
-        </div>
-        <div className="stepper" aria-label="Children">
-          <button onClick={() => step("kids", -1)} aria-label="Fewer children">−</button>
-          <span>{state.kids} child{state.kids === 1 ? "" : "ren"}</span>
-          <button onClick={() => step("kids", 1)} aria-label="More children">+</button>
-        </div>
-      </div>
-      <p className="note" style={{ margin: "6px 0 0" }}>
-        Children count as half a portion, so the shopping list is for {portions(state)} portions.
-      </p>
+      <button className="household" onClick={openHousehold}>
+        <span className="pic t0" aria-hidden="true">👪</span>
+        <span className="what">
+          <b>{peopleLabel(state)}</b>
+          <i>
+            {portions(state)} portions · dinner{planned.length ? `, ${planned.join(", ")}` : ""}
+            {state.avoid.length ? ` · avoiding ${state.avoid.join(", ")}` : ""}
+          </i>
+        </span>
+        <span className="go" aria-hidden="true">Edit</span>
+      </button>
+
       <div className="toolbar">
         <button className="chipbtn primary" onClick={askNewWeek}>↻ New week of ideas</button>
-      </div>
-      <div className="toolbar">
-        <span className="label">Plan lunches</span>
-        <div className="seg">
-          {Object.entries(LUNCH_MODES).map(([k, label]) => (
-            <button key={k} aria-pressed={state.lunchMode === k} onClick={() => update((s) => { s.lunchMode = k; })}>
-              {label}
-            </button>
-          ))}
-        </div>
+        {state.history.length > 0 && <button className="chipbtn" onClick={openPastWeeks}>Past weeks</button>}
       </div>
 
       <div className="days">
@@ -67,33 +54,39 @@ export default function WeekView({ state, update, photos, openSlot, askNewWeek }
                 <small>{d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</small>
                 {i === todayIdx && <span className="tag">Today</span>}
               </div>
-              {["lunch", "dinner"].map((meal) => {
-                if (meal === "lunch" && !lunchOn(state, i)) return null;
-                const info = slotInfo(state, day[meal]);
-                return (
-                  <button key={meal} className="slot" onClick={() => openSlot(i, meal)}>
-                    <span className="meal">{meal}</span>
-                    <Thumb recipe={info ? info.recipe : { id: "empty", pic: "＋" }} photos={photos} />
-                    <span className="what">
-                      {info ? (
-                        <>
-                          <b>{info.name}</b>
-                          <i>{info.sub}</i>
-                        </>
-                      ) : (
-                        <b className="empty">Tap to choose</b>
-                      )}
-                    </span>
-                    <span className="go" aria-hidden="true">›</span>
-                  </button>
-                );
-              })}
+              <div className="slots">
+                {MEALS.map((meal) => {
+                  if (!mealOn(state, meal, i)) return null;
+                  const info = slotInfo(state, day[meal]);
+                  return (
+                    <button key={meal} className="slot" onClick={() => openSlot(i, meal)}>
+                      <span className="meal">{meal === "lunchbox" ? "Box" : meal === "breakfast" ? "Bkfst" : meal}</span>
+                      <Thumb recipe={info ? info.recipe : { id: "empty", pic: "＋" }} photos={photos} />
+                      <span className="what">
+                        {info ? (
+                          <>
+                            <b>{info.name}</b>
+                            <i>
+                              {info.mins ? <span className="mins">{info.mins} min</span> : info.sub}
+                              {info.double && <span className="mark dbl">×2 cook double</span>}
+                              <Marks state={state} recipe={info.recipe} />
+                            </i>
+                          </>
+                        ) : (
+                          <b className="empty">Tap to choose</b>
+                        )}
+                      </span>
+                      <span className="go" aria-hidden="true">›</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
       </div>
       <p className="note" style={{ marginTop: 14 }}>
-        Tap any meal to swap it, see the recipe, get a new idea or write your own. The shopping list updates by itself.
+        Tap any meal to swap it, see the recipe, cook double, get a new idea or write your own. The shopping list updates by itself.
       </p>
     </>
   );

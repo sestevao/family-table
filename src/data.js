@@ -13,12 +13,16 @@ export const AISLE_ORDER = ["v", "m", "d", "b", "c", "f", "o", "s"];
 
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+// Meals in the order they appear on each day. Dinner is always planned.
+export const MEALS = ["breakfast", "lunchbox", "lunch", "dinner"];
+export const MEAL_LABEL = { breakfast: "Breakfast", lunchbox: "Lunchbox", lunch: "Lunch", dinner: "Dinner" };
+
 export const SPECIAL = {
   left: { name: "Leftovers", sub: "Use up what's in the fridge", pic: "🥡" },
   out: { name: "Eating out / takeaway", sub: "No cooking tonight", pic: "🍕" },
 };
 
-// Every recipe serves 4. ing: [qty, unit, name, aisle]
+// Every recipe serves 4 unless it says otherwise (lunchbox recipes make 4 boxes). ing: [qty, unit, name, aisle]
 export const LIBRARY = [
   { id: "fajita", pic: "🌯", name: "Chicken fajita traybake", mins: 25, meal: ["dinner"], tags: ["kids"],
     ing: [[500, "g", "chicken breast", "m"], [3, "", "peppers", "v"], [1, "", "red onion", "v"], [1, "sachet", "fajita seasoning", "c"], [8, "", "tortilla wraps", "b"], [150, "ml", "soured cream", "d"], [100, "g", "cheddar", "d"], [0, "", "olive oil", "s"]],
@@ -74,13 +78,149 @@ export const LIBRARY = [
   { id: "omelette", pic: "🍳", name: "Ham & cheese omelette", mins: 10, meal: ["lunch"], tags: ["quick", "kids"],
     ing: [[8, "", "eggs", "d"], [120, "g", "sliced ham", "m"], [80, "g", "cheddar", "d"], [200, "g", "cherry tomatoes", "v"], [0, "", "butter", "s"]],
     steps: ["Beat 2 eggs per person with a pinch of salt.", "Melt a little butter in a frying pan, add the eggs and swirl.", "Scatter over ham and cheese, fold when nearly set. Serve with tomatoes."] },
-  { id: "pastasalad", pic: "🥗", name: "Pesto pasta salad", mins: 15, meal: ["lunch"], tags: ["veggie", "kids"],
+  { id: "pastasalad", pic: "🥗", name: "Pesto pasta salad", mins: 15, meal: ["lunch", "lunchbox"], tags: ["veggie", "kids"],
     ing: [[300, "g", "fusilli", "c"], [1, "tin", "sweetcorn (198 g)", "c"], [200, "g", "cherry tomatoes", "v"], [0.5, "", "cucumber", "v"], [100, "g", "cheddar", "d"], [1, "jar", "green pesto", "c"]],
     steps: ["Cook the pasta, rinse under cold water and drain.", "Stir in 3 tbsp pesto, the sweetcorn, halved tomatoes, diced cucumber and cubed cheese.", "Keeps in the fridge for lunchboxes for 2 days."] },
+
+  // Breakfasts
+  { id: "oats", pic: "🥣", name: "Overnight oats with berries", mins: 5, meal: ["breakfast"], tags: ["quick", "veggie", "healthy"],
+    ing: [[320, "g", "porridge oats", "c"], [500, "ml", "milk", "d"], [250, "g", "Greek yoghurt", "d"], [300, "g", "frozen berries", "f"], [0, "", "honey", "s"]],
+    steps: ["The night before, mix the oats, milk and yoghurt in a big tub.", "Stir in the frozen berries, cover and chill overnight.", "Spoon into bowls in the morning with a drizzle of honey."] },
+  { id: "eggstoast", pic: "🍳", name: "Scrambled eggs on toast", mins: 10, meal: ["breakfast"], tags: ["quick", "kids", "veggie"],
+    ing: [[8, "", "eggs", "d"], [1, "", "sliced bread loaf", "b"], [0, "", "butter", "s"]],
+    steps: ["Beat the eggs with a pinch of salt.", "Melt a knob of butter in a pan on low heat, add the eggs and stir gently until just set.", "Serve on buttered toast."] },
+  { id: "pancakes", pic: "🥞", name: "Fluffy banana pancakes", mins: 20, meal: ["breakfast"], tags: ["kids", "weekend", "veggie"],
+    ing: [[200, "g", "self-raising flour", "c"], [2, "", "eggs", "d"], [300, "ml", "milk", "d"], [2, "", "bananas", "v"], [0, "", "golden syrup or honey", "s"], [0, "", "butter", "s"]],
+    steps: ["Whisk the flour, eggs and milk into a thick batter.", "Fry spoonfuls in a little butter, 2 minutes each side.", "Serve with sliced banana and a drizzle of syrup."] },
+  { id: "yogpots", pic: "🍓", name: "Yoghurt, granola & fruit pots", mins: 5, meal: ["breakfast"], tags: ["quick", "healthy", "veggie"],
+    ing: [[500, "g", "Greek yoghurt", "d"], [300, "g", "granola", "c"], [2, "", "bananas", "v"], [150, "g", "blueberries", "v"]],
+    steps: ["Spoon yoghurt into bowls or jars.", "Top with granola, sliced banana and blueberries."] },
+  { id: "beanstoast", pic: "🫘", name: "Cheesy beans on toast", mins: 10, meal: ["breakfast", "lunch"], tags: ["quick", "kids", "veggie"],
+    ing: [[2, "tin", "baked beans (415 g)", "c"], [1, "", "sliced bread loaf", "b"], [80, "g", "cheddar", "d"], [0, "", "butter", "s"]],
+    steps: ["Heat the beans.", "Toast and butter the bread.", "Pile on the beans and grate over the cheese."] },
+
+  // Lunchboxes (each recipe makes 4 boxes)
+  { id: "hamwraps", pic: "🌯", name: "Ham & cheese wrap boxes", mins: 5, meal: ["lunchbox"], tags: ["quick", "kids"],
+    ing: [[4, "", "tortilla wraps", "b"], [120, "g", "sliced ham", "m"], [100, "g", "cheddar", "d"], [0.5, "", "cucumber", "v"], [4, "", "apples", "v"]],
+    steps: ["Lay ham and grated cheese on each wrap and roll up tightly.", "Cut into pinwheels or halves.", "Pack with cucumber sticks and an apple."] },
+  { id: "tunasarnie", pic: "🥪", name: "Tuna mayo sandwich boxes", mins: 10, meal: ["lunchbox"], tags: ["quick", "kids"],
+    ing: [[1, "", "sliced bread loaf", "b"], [2, "tin", "tuna (145 g)", "c"], [1, "tin", "sweetcorn (198 g)", "c"], [1, "pack", "satsumas", "v"], [0, "", "mayonnaise", "s"]],
+    steps: ["Mix the drained tuna and sweetcorn with mayo.", "Make 4 rounds of sandwiches and cut into quarters.", "Pack with a satsuma or two."] },
+  { id: "snackbox", pic: "🧀", name: "Cheese, crackers & veg sticks", mins: 5, meal: ["lunchbox"], tags: ["quick", "kids", "veggie"],
+    ing: [[1, "pack", "crackers", "c"], [150, "g", "cheddar", "d"], [3, "", "carrots", "v"], [0.5, "", "cucumber", "v"], [500, "g", "grapes", "v"]],
+    steps: ["Cut the cheese into cubes and the carrot and cucumber into sticks.", "Halve the grapes lengthways for little ones.", "Pack everything with a handful of crackers."] },
+  { id: "hummusbox", pic: "🥙", name: "Hummus & veg pitta pockets", mins: 5, meal: ["lunchbox"], tags: ["quick", "veggie", "healthy"],
+    ing: [[4, "", "pitta breads", "b"], [200, "g", "hummus", "d"], [2, "", "carrots", "v"], [1, "", "peppers", "v"], [4, "", "apples", "v"]],
+    steps: ["Warm and cool the pittas so they open easily.", "Spread hummus inside and fill with grated carrot and pepper strips.", "Pack with an apple."] },
 ];
+
+// Typical UK supermarket packs with rough Aldi/Lidl-style prices (£). Matched by ingredient name without the bit in brackets.
+export const PACKS = {
+  "chicken breast": [[300, "g", 2.49], [650, "g", 4.79], [1000, "g", 6.99]],
+  "beef mince": [[500, "g", 3.29], [750, "g", 4.79]],
+  "pork sausages": [[8, "", 2.29]],
+  "salmon fillets": [[2, "", 3.69], [4, "", 6.49]],
+  "whole chicken": [[1, "", 4.99]],
+  "cooked chicken pieces": [[180, "g", 2.19], [300, "g", 3.29]],
+  "sliced ham": [[120, "g", 1.25]],
+  "fish fingers": [[10, "", 1.49], [20, "", 2.69]],
+  "frozen king prawns": [[200, "g", 2.99], [400, "g", 5.49]],
+  "frozen peas": [[1000, "g", 1.15]],
+  "frozen berries": [[500, "g", 2.29]],
+  eggs: [[6, "", 1.49], [12, "", 2.79]],
+  cheddar: [[200, "g", 1.79], [400, "g", 3.09]],
+  parmesan: [[100, "g", 1.99]],
+  "soured cream": [[300, "ml", 0.85]],
+  "light cream cheese": [[200, "g", 1.09]],
+  "mozzarella ball": [[1, "", 0.65]],
+  coleslaw: [[300, "g", 0.95]],
+  hummus: [[200, "g", 0.89]],
+  "greek yoghurt": [[500, "g", 1.39]],
+  milk: [[1136, "ml", 0.95], [2272, "ml", 1.45]],
+  "cheese slices": [[10, "slice", 1.29]],
+  falafel: [[1, "pack", 1.49]],
+  "tortilla wraps": [[8, "", 1.09]],
+  "burger buns": [[6, "", 0.79]],
+  "pitta breads": [[6, "", 0.55]],
+  "naan breads": [[2, "", 0.89]],
+  "sliced bread loaf": [[1, "", 0.75]],
+  "crusty loaf": [[1, "", 1.09]],
+  peppers: [[3, "", 1.29]],
+  "red onion": [[3, "", 0.69]],
+  onion: [[5, "", 0.79]],
+  garlic: [[40, "clove", 0.69]],
+  carrot: [[10, "", 0.45]],
+  carrots: [[10, "", 0.45]],
+  lemon: [[4, "", 0.69]],
+  "new potatoes": [[1000, "g", 1.09]],
+  potatoes: [[2500, "g", 1.39]],
+  "baking potatoes": [[4, "", 0.89]],
+  "tenderstem broccoli": [[200, "g", 1.49]],
+  mushrooms: [[300, "g", 0.89]],
+  "baby spinach": [[100, "g", 0.99], [240, "g", 1.39]],
+  courgette: [[1, "", 0.4]],
+  "cherry tomatoes": [[250, "g", 0.79]],
+  tomatoes: [[6, "", 0.79]],
+  "little gem lettuce": [[2, "", 0.69]],
+  cucumber: [[1, "", 0.69]],
+  "spring onions": [[1, "bunch", 0.45]],
+  "stir-fry vegetables": [[1, "pack", 1.15]],
+  bananas: [[5, "", 0.79]],
+  apples: [[6, "", 1.19]],
+  grapes: [[500, "g", 1.69]],
+  blueberries: [[150, "g", 1.39]],
+  satsumas: [[1, "pack", 1.49]],
+  "chopped tomatoes": [[1, "tin", 0.35]],
+  "butter beans": [[1, "tin", 0.45]],
+  chickpeas: [[1, "tin", 0.45]],
+  "kidney beans": [[1, "tin", 0.45]],
+  "coconut milk": [[1, "tin", 0.89]],
+  "tomato soup": [[1, "tin", 0.55]],
+  tuna: [[1, "tin", 0.85]],
+  sweetcorn: [[1, "tin", 0.45]],
+  "baked beans": [[1, "tin", 0.35]],
+  spaghetti: [[500, "g", 0.45]],
+  penne: [[500, "g", 0.45]],
+  fusilli: [[500, "g", 0.45]],
+  "egg noodles": [[375, "g", 1.09]],
+  "basmati rice": [[1000, "g", 1.89]],
+  "microwave rice": [[1, "pouch", 0.75]],
+  gnocchi: [[500, "g", 0.99]],
+  "fajita seasoning": [[1, "sachet", 0.55]],
+  "tikka curry paste": [[1, "jar", 1.19]],
+  "green pesto": [[1, "jar", 0.99]],
+  "stir-fry sauce": [[1, "sachet", 0.65]],
+  "gravy granules": [[1, "pack", 1.1]],
+  "caesar dressing": [[1, "bottle", 1.29]],
+  "porridge oats": [[1000, "g", 0.75]],
+  granola: [[500, "g", 1.79]],
+  "self-raising flour": [[1500, "g", 0.8]],
+  crackers: [[1, "pack", 0.99]],
+};
+
+// Words people type for allergies and dislikes, and the ingredients they cover
+export const AVOID_ALIASES = {
+  nuts: ["nut", "peanut", "almond", "cashew", "walnut", "hazelnut", "pecan", "pistachio", "pesto", "granola"],
+  fish: ["fish", "salmon", "tuna", "cod", "haddock", "mackerel", "sardine", "anchov", "caesar"],
+  shellfish: ["prawn", "shrimp", "crab", "lobster", "mussel"],
+  dairy: ["milk", "cheese", "cheddar", "cream", "butter", "yog", "mozzarella", "parmesan", "soured", "coleslaw"],
+  gluten: ["bread", "loaf", "pasta", "spaghetti", "penne", "fusilli", "wrap", "tortilla", "naan", "bun", "noodle", "flour", "gnocchi", "pitta", "cracker", "oats", "granola", "gravy", "fish finger", "sausage"],
+  egg: ["egg", "mayonnaise", "pancake"],
+  eggs: ["egg", "mayonnaise", "pancake"],
+  meat: ["chicken", "beef", "pork", "sausage", "ham", "mince", "bacon", "lamb", "turkey"],
+  vegetarian: ["chicken", "beef", "pork", "sausage", "ham", "mince", "bacon", "lamb", "turkey", "fish", "salmon", "tuna", "prawn", "caesar"],
+  pork: ["pork", "sausage", "ham", "bacon"],
+  spicy: ["chilli", "curry", "fajita"],
+};
+export const AVOID_SUGGESTIONS = ["nuts", "fish", "shellfish", "dairy", "gluten", "eggs", "pork", "vegetarian", "mushrooms", "spicy"];
 
 // The week you had planned in the first version of the app
 export const STARTER_WEEK = [
   ["toasties", "chickpasta"], ["caesar", "fajita"], ["tunajacket", "curry"], ["omelette", "stirfry"],
   ["falafel", "fishwraps"], ["pastasalad", "burgers"], ["toasties", "roast"],
-].map(([lunch, dinner]) => ({ lunch: { r: lunch }, dinner: { r: dinner } }));
+].map(([lunch, dinner], i) => ({
+  breakfast: { r: ["oats", "eggstoast", "yogpots", "beanstoast", "oats", "pancakes", "eggstoast"][i] },
+  lunchbox: { r: ["hamwraps", "snackbox", "tunasarnie", "hummusbox", "pastasalad", "hamwraps", "snackbox"][i] },
+  lunch: { r: lunch },
+  dinner: { r: dinner },
+}));

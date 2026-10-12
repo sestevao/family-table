@@ -1,53 +1,80 @@
 # Family Table
 
-A weekly family meal planner for your phone: quick recipes, adults and children portions, a shopping list grouped by shop aisle (with Southampton shop tips), your own recipes and photos, and optional new recipe ideas.
+A weekly family meal planner for your phone. Built with React + Vite, runs free on Vercel.
 
-Built with React + Vite. Runs free on Vercel.
+**What it does**
+- Plans breakfast, lunchboxes, lunch and dinner for the week, for adults and children of different ages
+- Builds the shopping list with pack sizes, a rough cost, a "check the cupboard" section and Southampton shop tips
+- Favourites, "not again", allergies and foods to avoid, cook-once-eat-twice leftovers
+- A new-week prompt every Monday, with the last 8 weeks saved to reuse
+- Your own recipes, plus import from a recipe website link or a photo of a cookbook page
+- New recipe ideas, photos of your dishes, and a daily "what's for dinner" reminder
+- Family sync: everyone with the invite link shares one plan, and changes made at the same time are merged
 
-## Put it online (no terminal needed)
+## 1. Put it online
 
-### 1. Upload to your personal GitHub
-1. Sign in to **github.com with your personal account** (not your work one).
-2. Click **+ → New repository**, name it `family-table`, choose **Private**, click **Create repository**.
-3. On the new repo page click **uploading an existing file**.
-4. Open the `family-table` folder in Finder, select everything **except** `node_modules` and `dist`, and drag it into the browser.
-   - Hidden files: press `Cmd + Shift + .` in Finder to see `.gitignore`, and include it.
-5. Click **Commit changes**.
+**Option A: GitHub + Vercel (no terminal)**
+1. On **github.com with your personal account**: **+ → New repository** → name `family-table` → **Private** → **Create**.
+2. Click **uploading an existing file**, then drag in everything in this folder **except** `node_modules` and `dist`. Press `Cmd + Shift + .` in Finder to show hidden files and include `.gitignore`. Click **Commit changes**.
+3. On **vercel.com**, **Continue with GitHub** (same personal account) → **Add New → Project** → pick `family-table` → **Deploy**.
 
-### 2. Deploy on Vercel
-1. Go to **vercel.com** and **Continue with GitHub** using the same personal GitHub account.
-2. **Add New → Project**, pick `family-table`, click **Import**, then **Deploy** (the settings are detected automatically).
-3. You get a link like `https://family-table-xxxx.vercel.app`. The app works now, saving on each phone.
+**Option B: straight from your Mac**
+```bash
+cd ~/family-table
+npx vercel --prod
+```
+Log in with your personal account when the browser opens, and accept the defaults.
 
-### 3. Turn on family sync (free)
-1. In your Vercel project open **Storage → Create Database → Upstash (Redis) → Continue**, pick the **Free** plan and a region near the UK (e.g. London or Frankfurt), then **Create**.
-2. When asked, **Connect** it to the `family-table` project (all environments).
-3. Go to **Deployments**, open the ⋯ menu on the latest one and click **Redeploy**.
-4. Open the app: tap **Start our family plan**, then **Family & backup** (people icon, top right) → **Share invite link** and send it to your family.
+**Optional features**
 
-### 4. Turn on "New idea" (optional, free tier)
-1. Go to **aistudio.google.com** with a personal Google account → **Get API key → Create API key**, and copy it.
-2. In Vercel: **Settings → Environment Variables** → add `GEMINI_API_KEY` with that key → **Save**.
-3. **Redeploy** again. The ✨ New idea box appears when you tap a meal.
+Each of these is switched on in your Vercel project. After changing any setting, go to **Deployments → ⋯ → Redeploy**.
 
-Note: on Google's free tier, Google may use what you send (meal requests) to improve its products. Only meal details are sent.
+## 2. Family sync (free)
+**Storage → Create Database → Upstash (Redis) → Free plan**, choose a region near the UK, then **Connect** it to the project.
+Open the app, tap **Start our family plan**, then use the people icon (top right) → **Share invite link**.
 
-### 5. Add it to your phone's home screen
+## 3. Photos as files (free, recommended)
+**Storage → Create Database → Blob → Create**, then **Connect** it to the project.
+Without this, photos still work but are kept in the database, which has less room.
+
+## 4. New ideas and importing from photos (free tier)
+1. Go to **aistudio.google.com** with a personal Google account → **Get API key** → copy it.
+2. **Settings → Environment Variables** → add `GEMINI_API_KEY`.
+
+Importing from a website link works without this for most recipe sites, because they include a recipe card the app can read.
+On Google's free tier, Google may use what you send (meal requests and recipe photos) to improve its products.
+
+## 5. Dinner reminders (free)
+1. In Terminal run `npx web-push generate-vapid-keys`. It prints a Public Key and a Private Key.
+2. **Settings → Environment Variables** → add:
+   - `VAPID_PUBLIC_KEY`: the public key
+   - `VAPID_PRIVATE_KEY`: the private key (keep this secret)
+   - `VAPID_SUBJECT`: `mailto:` followed by your personal email
+   - `CRON_SECRET`: any long random password (stops strangers triggering reminders)
+3. Redeploy. On each phone: people icon → **Turn on reminders on this phone**.
+   - **iPhone:** add the app to the Home Screen first and open it from there (iOS 16.4 or newer).
+
+Reminders go out once a day at 15:00 UK winter time, which is 16:00 in summer. The free Vercel plan allows one run a day, and it may arrive up to an hour late. To change the time, edit `vercel.json`.
+
+## 6. Add it to your phone
 - **iPhone (Safari):** Share → **Add to Home Screen**
-- **Android (Chrome):** ⋮ → **Add to Home screen** / **Install app**
+- **Android (Chrome):** ⋮ → **Install app**
 
-## Making changes later
-Edit files on GitHub (or upload new versions). Vercel redeploys automatically on every change.
+## Making changes
+Edit or upload files on GitHub and Vercel redeploys automatically. Or run `npx vercel --prod` again.
 
-## Run on your computer (optional)
 ```bash
 npm install
-npm run dev
+npm test        # checks the shopping list maths, portions, allergies, packs and imports
+npm run dev     # runs the app on your computer (sync, ideas and reminders need the Vercel site)
 ```
-Family sync and new ideas only work on the Vercel site, unless you use `npx vercel dev`.
 
 ## What's where
-- `src/data.js`: the built-in recipes and Southampton shop tips
-- `src/plan.js`: shopping list maths, portions (children = half a portion)
-- `src/useFamilyPlan.js`: saving on the phone and syncing with the family
-- `api/`: small server functions on Vercel (plan, photos, new ideas)
+- `src/data.js`: recipes, pack sizes and prices, allergy words, Southampton shop tips
+- `src/plan.js`: portions, shopping list, packs and cost, picking meals, new weeks
+- `src/useFamilyPlan.js`: saving on the phone and merging changes with the family
+- `src/components/`: the screens
+- `api/`: server functions on Vercel (plan, photos, ideas, import, reminders)
+- `tests/`: automatic checks (`npm test`)
+
+Prices are rough Aldi/Lidl-style guides. Update them in `src/data.js` (`PACKS`) if they drift.

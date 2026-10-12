@@ -1,17 +1,23 @@
 import { useState } from "react";
-import { allRecipes } from "../plan.js";
-import { Thumb } from "./ui.jsx";
+import { MEAL_LABEL } from "../data.js";
+import { allRecipes, rating } from "../plan.js";
+import { Thumb, Marks } from "./ui.jsx";
 
-const FILTERS = [["all", "All"], ["quick", "Under 20 min"], ["kids", "Kid friendly"], ["veggie", "Veggie"], ["healthy", "Healthy"], ["mine", "Mine"]];
+const FILTERS = [
+  ["all", "All"], ["fav", "♥ Favourites"], ["quick", "Under 20 min"], ["kids", "Kid friendly"], ["veggie", "Veggie"],
+  ["healthy", "Healthy"], ["breakfast", "Breakfast"], ["lunchbox", "Lunchbox"], ["mine", "Mine"],
+];
 
-export default function RecipesView({ state, photos, openRecipe, newRecipe }) {
+export default function RecipesView({ state, photos, openRecipe, newRecipe, openImport }) {
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
   const q = query.toLowerCase();
   const recipes = allRecipes(state).filter((r) => {
     if (filter === "mine" && !r.custom) return false;
+    if (filter === "fav" && rating(state, r.id) <= 0) return false;
     if (filter === "quick" && r.mins > 20) return false;
-    if (!["all", "mine", "quick"].includes(filter) && !(r.tags || []).includes(filter)) return false;
+    if (["breakfast", "lunchbox"].includes(filter) && !r.meal.includes(filter)) return false;
+    if (["kids", "veggie", "healthy"].includes(filter) && !(r.tags || []).includes(filter)) return false;
     return !q || r.name.toLowerCase().includes(q) || r.ing.some((i) => i[2].toLowerCase().includes(q));
   });
 
@@ -26,7 +32,8 @@ export default function RecipesView({ state, photos, openRecipe, newRecipe }) {
         ))}
       </div>
       <div className="toolbar">
-        <button className="chipbtn primary" onClick={newRecipe}>+ Add your own recipe</button>
+        <button className="chipbtn primary" onClick={newRecipe}>+ Add your own</button>
+        <button className="chipbtn" onClick={openImport}>Import from a link or photo</button>
       </div>
       <div className="rcards">
         {recipes.length ? (
@@ -35,14 +42,20 @@ export default function RecipesView({ state, photos, openRecipe, newRecipe }) {
               <Thumb recipe={r} photos={photos} />
               <span className="t">
                 <b>{r.name}</b>
-                <i>{r.meal.join(" · ")} · {r.ing.length} ingredients</i>
+                <i>
+                  {r.meal.map((m) => MEAL_LABEL[m]).join(" · ")} · serves {r.serves || 4} <Marks state={state} recipe={r} />
+                </i>
               </span>
               <span className="mins">{r.mins} min</span>
             </button>
           ))
         ) : (
           <p className="note">
-            {filter === "mine" ? "You haven't added any recipes yet. Tap “Add your own recipe” to save a family favourite." : "No recipes match that search."}
+            {filter === "mine"
+              ? "You haven't added any recipes yet. Add a family favourite or import one from a website."
+              : filter === "fav"
+                ? "No favourites yet. Open a recipe and tap “Family favourite”."
+                : "No recipes match that search."}
           </p>
         )}
       </div>

@@ -5,24 +5,40 @@ import { normalise } from "./plan.js";
 const CODE_RE = /fam-[a-z0-9-]{12,40}/;
 const POLL_MS = 20000;
 
-// Holds the plan, saves it on this device, and keeps it in sync with the family when storage is connected
+const apply = (s, fn) => {
+  const next = structuredClone(s);
+  fn(next);
+  return next;
+};
+
+/*
+  Holds the plan, saves it on this phone, and syncs it with the family.
+
+  Every change is a small function (e.g. "tick the eggs"). Changes not yet saved wait in a queue.
+  If someone else saved first, we take their version and replay our queued changes on top,
+  so two people ticking items at the same time never undo each other.
+*/
 export function useFamilyPlan() {
   const [state, setState] = useState(() => normalise(local.get("ft-state")));
   const [photos, setPhotos] = useState(() => local.get("ft-photos") || {});
-  const [config, setConfig] = useState({ sync: false, ai: false, loaded: false });
+  const [config, setConfig] = useState({ sync: false, ai: false, reminders: false, loaded: false });
   const [code, setCode] = useState(() => local.get("ft-family"));
   const [status, setStatus] = useState("Saved on this phone");
+  const [ready, setReady] = useState(false); // true once the family's latest plan has loaded
 
   const stateRef = useRef(state);
   const codeRef = useRef(code);
-  const dirty = useRef(false);
+  const syncRef = useRef(false);
+  const base = useRef(null); // last version confirmed by the server
+  const version = useRef(null);
+  const queue = useRef([]); // changes not yet saved
   const saving = useRef(false);
   const timer = useRef(null);
-  const lastUpdated = useRef(0);
   stateRef.current = state;
   codeRef.current = code;
 
   const canSync = config.sync && Boolean(code);
+  syncRef.current = canSync;
 
   // Invite links look like https://your-app.vercel.app/?family=fam-xxxxx-xxxxx-xxxxx
   useEffect(() => {
@@ -36,46 +52,69 @@ export function useFamilyPlan() {
   }, []);
 
   useEffect(() => local.set("ft-state", state), [state]);
+  useEffect(() => {
+    if (config.loaded && !canSync) setReady(true);
+  }, [config.loaded, canSync]);
 
-  const push = useCallback(async () => {
+  const show = (s) => {
+    stateRef.current = s;
+    setState(s);
+  };
+
+  const push = useCallback(async (attempt = 0) => {
     clearTimeout(timer.current);
-    if (!codeRef.current) return;
-    if (saving.current) {
-      dirty.current = true;
-      return;
-    }
+    if (!syncRef.current || !codeRef.current || !base.current) return;
+    if (saving.current) return;
+    const n = queue.current.length;
+    if (!n && version.current) return;
     saving.current = true;
-    dirty.current = false;
     setStatus("Saving…");
+    const snapshot = queue.current.reduce(apply, base.current);
     try {
-      const { updatedAt } = await putPlan(codeRef.current, stateRef.current);
-      lastUpdated.current = updatedAt;
-      setStatus("Synced");
+      const res = await putPlan(codeRef.current, snapshot, version.current);
+      if (res.conflict) {
+        // Someone else saved first: rebuild on top of their version and try again
+        base.current = normalise(res.data);
+        version.current = res.version;
+        show(queue.current.reduce(apply, base.current));
+        saving.current = false;
+        if (attempt < 5) return push(attempt + 1);
+      } else {
+        base.current = snapshot;
+        version.current = res.version;
+        queue.current.splice(0, n);
+        setStatus("Synced");
+      }
     } catch {
-      dirty.current = true;
       setStatus("Offline · saved on this phone");
+      timer.current = setTimeout(push, 5000);
     }
     saving.current = false;
-    if (dirty.current) timer.current = setTimeout(push, 4000);
+    if (queue.current.length) timer.current = setTimeout(push, 700);
   }, []);
 
   const pull = useCallback(async () => {
-    if (!codeRef.current || dirty.current || saving.current) return;
+    if (!codeRef.current || saving.current || queue.current.length) return;
     try {
       const res = await getPlan(codeRef.current);
-      if (dirty.current || saving.current) return; // a local edit happened while we were loading
+      if (saving.current || queue.current.length) return; // a local change happened while loading
       if (res.data) {
-        if (res.updatedAt !== lastUpdated.current) {
-          lastUpdated.current = res.updatedAt;
-          setState(normalise(res.data));
+        if (res.version !== version.current) {
+          base.current = normalise(res.data);
+          version.current = res.version;
+          show(base.current);
         }
         setStatus("Synced");
       } else {
-        await push(); // brand-new family: upload this phone's plan
+        // Brand-new family: this phone's plan becomes the family plan
+        base.current = stateRef.current;
+        version.current = null;
+        await push();
       }
     } catch {
       setStatus("Offline · saved on this phone");
     }
+    setReady(true);
   }, [push]);
 
   const pullPhotos = useCallback(async () => {
@@ -93,7 +132,10 @@ export function useFamilyPlan() {
       setStatus("Saved on this phone");
       return;
     }
-    lastUpdated.current = 0;
+    base.current = null;
+    version.current = null;
+    queue.current = [];
+    setReady(false);
     pull();
     pullPhotos();
     const id = setInterval(() => document.visibilityState === "visible" && pull(), POLL_MS);
@@ -110,39 +152,42 @@ export function useFamilyPlan() {
     };
   }, [canSync, code, pull, pullPhotos]);
 
-  // Change the plan: update(s => { s.adults = 2 })
+  // Change the plan: update(s => { s.adults = 2 }). Read any values from events BEFORE calling update.
   const update = useCallback(
     (fn) => {
-      setState((prev) => {
-        const next = structuredClone(prev);
-        fn(next);
-        return next;
-      });
-      if (config.sync && codeRef.current) {
-        dirty.current = true;
+      show(apply(stateRef.current, fn));
+      if (syncRef.current && base.current) {
+        queue.current.push(fn);
         setStatus("Saving…");
         clearTimeout(timer.current);
         timer.current = setTimeout(push, 700);
       }
     },
-    [config.sync, push]
+    [push]
   );
 
-  const replaceState = useCallback((s) => update((d) => Object.assign(d, normalise(s))), [update]);
+  const replaceState = useCallback(
+    (s) => {
+      const clean = normalise(s);
+      update((d) => {
+        Object.keys(d).forEach((k) => delete d[k]);
+        Object.assign(d, structuredClone(clean));
+      });
+    },
+    [update]
+  );
 
-  const startFamily = useCallback(() => {
+  const startFamily = useCallback(async () => {
     const c = newFamilyCode();
     local.set("ft-family", c);
     codeRef.current = c;
     setCode(c);
-    return push();
-  }, [push]);
+  }, []);
 
   const joinFamily = useCallback((text) => {
     const m = String(text || "").match(CODE_RE);
     if (!m) return false;
     local.set("ft-family", m[0]);
-    dirty.current = false;
     setCode(m[0]);
     return true;
   }, []);
@@ -152,17 +197,15 @@ export function useFamilyPlan() {
     setCode(null);
   }, []);
 
-  const savePhoto = useCallback(
-    async (id, src) => {
-      setPhotos((p) => {
-        const n = { ...p, [id]: src };
-        local.set("ft-photos", n);
-        return n;
-      });
-      if (config.sync && codeRef.current) await putPhoto(codeRef.current, id, src);
-    },
-    [config.sync]
-  );
+  const savePhoto = useCallback(async (id, src) => {
+    let stored = src;
+    if (syncRef.current && codeRef.current) stored = (await putPhoto(codeRef.current, id, src)).src || src;
+    setPhotos((p) => {
+      const n = { ...p, [id]: stored };
+      local.set("ft-photos", n);
+      return n;
+    });
+  }, []);
 
-  return { state, update, replaceState, photos, savePhoto, config, code, status, startFamily, joinFamily, leaveFamily };
+  return { state, update, replaceState, photos, savePhoto, config, code, status, ready, startFamily, joinFamily, leaveFamily };
 }

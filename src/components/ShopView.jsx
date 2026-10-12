@@ -105,6 +105,7 @@ export default function ShopView({ state, update, toast, showText }) {
         </button>
       </div>
 
+      <div className="aisles">
       {AISLE_ORDER.filter((a) => a !== "s").map((a) => {
         const items = list.filter((it) => it.aisle === a && !it.atHome).sort((x, y) => x.name.localeCompare(y.name));
         const extras = a === "o" ? state.extras : [];
@@ -137,6 +138,7 @@ export default function ShopView({ state, update, toast, showText }) {
           </section>
         );
       })}
+      </div>
 
       <form className="addrow" onSubmit={addExtra}>
         <input id="addExtra" value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="Add something else (milk, nappies…)" autoComplete="off" />

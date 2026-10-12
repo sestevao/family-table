@@ -1,12 +1,33 @@
 import { useState } from "react";
 import { MEAL_LABEL } from "../data.js";
-import { allRecipes, rating } from "../plan.js";
-import { Thumb, Marks } from "./ui.jsx";
+import { allRecipes, rating, avoidHits } from "../plan.js";
+import { Photo } from "./ui.jsx";
 
 const FILTERS = [
   ["all", "All"], ["fav", "♥ Favourites"], ["quick", "Under 20 min"], ["kids", "Kid friendly"], ["veggie", "Veggie"],
   ["healthy", "Healthy"], ["breakfast", "Breakfast"], ["lunchbox", "Lunchbox"], ["mine", "Mine"],
 ];
+
+// A photo card for one recipe, used in the recipe grid and the meal picker
+export function RecipeTile({ recipe, state, photos, onClick, current }) {
+  const hits = avoidHits(state, recipe);
+  return (
+    <button className={`rtile${current ? " cur" : ""}`} onClick={onClick}>
+      <Photo recipe={recipe} photos={photos}>
+        <span className="badge-top mins">{recipe.mins} min</span>
+        {rating(state, recipe.id) > 0 && <span className="fav" aria-label="Family favourite">♥</span>}
+      </Photo>
+      <span className="t">
+        <b>{recipe.name}</b>
+        <i>
+          {recipe.meal.map((m) => MEAL_LABEL[m]).join(" · ")}
+          {rating(state, recipe.id) < 0 && " · not again"}
+        </i>
+        {hits.length > 0 && <span className="mark warn">⚠ {hits.join(", ")}</span>}
+      </span>
+    </button>
+  );
+}
 
 export default function RecipesView({ state, photos, openRecipe, newRecipe, openImport }) {
   const [filter, setFilter] = useState("all");
@@ -35,30 +56,21 @@ export default function RecipesView({ state, photos, openRecipe, newRecipe, open
         <button className="chipbtn primary" onClick={newRecipe}>+ Add your own</button>
         <button className="chipbtn" onClick={openImport}>Import from a link or photo</button>
       </div>
-      <div className="rcards">
-        {recipes.length ? (
-          recipes.map((r) => (
-            <button key={r.id} className="rcard" onClick={() => openRecipe(r.id)}>
-              <Thumb recipe={r} photos={photos} />
-              <span className="t">
-                <b>{r.name}</b>
-                <i>
-                  {r.meal.map((m) => MEAL_LABEL[m]).join(" · ")} · serves {r.serves || 4} <Marks state={state} recipe={r} />
-                </i>
-              </span>
-              <span className="mins">{r.mins} min</span>
-            </button>
-          ))
-        ) : (
-          <p className="note">
-            {filter === "mine"
-              ? "You haven't added any recipes yet. Add a family favourite or import one from a website."
-              : filter === "fav"
-                ? "No favourites yet. Open a recipe and tap “Family favourite”."
-                : "No recipes match that search."}
-          </p>
-        )}
-      </div>
+      {recipes.length ? (
+        <div className="rgrid">
+          {recipes.map((r) => (
+            <RecipeTile key={r.id} recipe={r} state={state} photos={photos} onClick={() => openRecipe(r.id)} />
+          ))}
+        </div>
+      ) : (
+        <p className="note" style={{ marginTop: 16 }}>
+          {filter === "mine"
+            ? "You haven't added any recipes yet. Add a family favourite or import one from a website."
+            : filter === "fav"
+              ? "No favourites yet. Open a recipe and tap “Family favourite”."
+              : "No recipes match that search."}
+        </p>
+      )}
     </>
   );
 }

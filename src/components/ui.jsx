@@ -17,6 +17,17 @@ export function Thumb({ recipe, photos, className = "pic" }) {
   );
 }
 
+// Large food picture: the family's own photo, or a big illustration on a tinted plate
+export function Photo({ recipe, photos, className = "", children }) {
+  const src = recipe && photos?.[recipe.id];
+  return (
+    <span className={`photo ${tint(recipe?.id || "x")} ${className}`}>
+      {src ? <img src={src} alt="" loading="lazy" /> : <span aria-hidden="true">{recipe?.pic || "🍽️"}</span>}
+      {children}
+    </span>
+  );
+}
+
 // Small markers after a recipe name: favourite, not again, allergy warning
 export function Marks({ state, recipe }) {
   if (!recipe?.ing) return null;
@@ -63,8 +74,8 @@ export function Hero({ recipe, photos, onPhoto, toast }) {
     setBusy(false);
   };
   return (
-    <div className={`hero ${tint(recipe.id)}`}>
-      {src ? <img src={src} alt={`Photo of ${recipe.name}`} /> : <span aria-hidden="true">{recipe.pic || "🍽️"}</span>}
+    <div className="hero">
+      <Photo recipe={recipe} photos={photos} />
       <label className="chipbtn photoBtn">
         {busy ? "Adding…" : src ? "Change photo" : "📷 Add photo"}
         <input type="file" accept="image/*" onChange={onFile} disabled={busy} />

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { DAYS, MEALS, MEAL_LABEL } from "../data.js";
 import { allRecipes, findRecipe, mealOn, peopleLabel, cleanIdea, parseIng, ingToLine, pickRecipe, rating, setDouble, avoidHits, shrinkImage } from "../plan.js";
 import { askIdea, importRecipe } from "../api.js";
-import { Sheet, Thumb, Hero, Ingredients, Method, Marks, Rating, Stepper } from "./ui.jsx";
+import { Sheet, Thumb, Hero, Ingredients, Method, Rating, Stepper } from "./ui.jsx";
+import { RecipeTile } from "./RecipesView.jsx";
 
 function RecipeDetails({ recipe, app, meal }) {
   const hits = avoidHits(app.state, recipe);
@@ -148,13 +149,7 @@ export function SlotSheet({ app, day, meal, close }) {
     } else toast("No other recipes fit. Try a new idea or add your own.");
   };
   const option = (x) => (
-    <button key={x.id} className={`opt${cur.r === x.id ? " cur" : ""}`} onClick={() => set({ r: x.id })}>
-      <Thumb recipe={x} photos={app.photos} />
-      <b>
-        {x.name} <Marks state={state} recipe={x} />
-      </b>
-      <span className="mins">{x.mins} min</span>
-    </button>
+    <RecipeTile key={x.id} recipe={x} state={state} photos={app.photos} current={cur.r === x.id} onClick={() => set({ r: x.id })} />
   );
   // Favourites first, then the rest; "not again" and allergy matches last
   const score = (x) => rating(state, x.id) * 2 - (avoidHits(state, x).length ? 3 : 0);
@@ -206,12 +201,12 @@ export function SlotSheet({ app, day, meal, close }) {
       </form>
 
       <span className="label">Suits {MEAL_LABEL[meal].toLowerCase()}</span>
-      <div className="opts">{sorted.map(option)}</div>
+      <div className="pickgrid">{sorted.map(option)}</div>
       {others.length > 0 &&
         (showAll ? (
           <>
             <span className="label">Other recipes</span>
-            <div className="opts">{others.map(option)}</div>
+            <div className="pickgrid">{others.map(option)}</div>
           </>
         ) : (
           <button className="chipbtn" onClick={() => setShowAll(true)}>Show {others.length} other recipes</button>
